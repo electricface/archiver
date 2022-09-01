@@ -2,7 +2,9 @@ package archiver
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -40,6 +42,87 @@ type File struct {
 	Open func() (io.ReadCloser, error)
 }
 
+// readDir reads the directory named by dirname and returns
+// a sorted list of directory entries.
+func readDir(dirname string) ([]mfs.DirEntry, error) {
+	// f, err := os.Open(dirname)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// dirs, err := f.Readdir(-1)
+	// f.Close()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// sort.Slice(dirs, func(i, j int) bool { return dirs[i].Name() < dirs[j].Name() })
+	fileInfos, err := ioutil.ReadDir(dirname)
+	if err != nil {
+		return nil, err
+	}
+	dirs := make([]mfs.DirEntry, 0, len(fileInfos))
+	for _, fi := range fileInfos {
+		dirs = append(dirs, mfs.FileInfoToDirEntry(fi))
+	}
+	return dirs, nil
+}
+
+// walkDir recursively descends path, calling walkDirFn.
+func walkDir(path string, d mfs.DirEntry, walkDirFn mfs.WalkDirFunc) error {
+	if err := walkDirFn(path, d, nil); err != nil || !d.IsDir() {
+		if err == mfs.SkipDir && d.IsDir() {
+			// Successfully skipped directory.
+			err = nil
+		}
+		return err
+	}
+
+	dirs, err := readDir(path)
+	if err != nil {
+		// Second call, to report ReadDir error.
+		err = walkDirFn(path, d, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, d1 := range dirs {
+		path1 := filepath.Join(path, d1.Name())
+		if err := walkDir(path1, d1, walkDirFn); err != nil {
+			if err == mfs.SkipDir {
+				break
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+// WalkDir walks the file tree rooted at root, calling fn for each file or
+// directory in the tree, including root.
+//
+// All errors that arise visiting files and directories are filtered by fn:
+// see the fs.WalkDirFunc documentation for details.
+//
+// The files are walked in lexical order, which makes the output deterministic
+// but requires WalkDir to read an entire directory into memory before proceeding
+// to walk that directory.
+//
+// WalkDir does not follow symbolic links.
+func goFilePathWalkDir(root string, fn mfs.WalkDirFunc) error {
+	// copy from filepath.WalkDir
+	info, err := os.Lstat(root)
+	if err != nil {
+		err = fn(root, nil, err)
+	} else {
+		// err = walkDir(root, &statDirEntry{info}, fn)
+		err = walkDir(root, mfs.FileInfoToDirEntry(info), fn)
+	}
+	if err == mfs.SkipDir {
+		return nil
+	}
+	return err
+}
+
 func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
 
 // FilesFromDisk returns a list of files by walking the directories in the
@@ -66,60 +149,57 @@ func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
 func FilesFromDisk(options *FromDiskOptions, filenames map[string]string) ([]File, error) {
 	var files []File
 	for rootOnDisk, rootInArchive := range filenames {
-		// TODO SWT
-		_ = rootOnDisk
-		_ = rootInArchive
-		// filepath.WalkDir(rootOnDisk, func(filename string, d mfs.DirEntry, err error) error {
-		// 	if err != nil {
-		// 		return err
-		// 	}
+		goFilePathWalkDir(rootOnDisk, func(filename string, d mfs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
 
-		// 	info, err := d.Info()
-		// 	if err != nil {
-		// 		return err
-		// 	}
+			info, err := d.Info()
+			if err != nil {
+				return err
+			}
 
-		// 	nameInArchive := nameOnDiskToNameInArchive(filename, rootOnDisk, rootInArchive)
+			nameInArchive := nameOnDiskToNameInArchive(filename, rootOnDisk, rootInArchive)
 
-		// 	// handle symbolic links
-		// 	var linkTarget string
-		// 	if isSymlink(info) {
-		// 		if options != nil && options.FollowSymlinks {
-		// 			// dereference symlinks
-		// 			filename, err = os.Readlink(filename)
-		// 			if err != nil {
-		// 				return fmt.Errorf("%s: readlink: %w", filename, err)
-		// 			}
-		// 			info, err = os.Stat(filename)
-		// 			if err != nil {
-		// 				return fmt.Errorf("%s: statting dereferenced symlink: %w", filename, err)
-		// 			}
-		// 		} else {
-		// 			// preserve symlinks
-		// 			linkTarget, err = os.Readlink(filename)
-		// 			if err != nil {
-		// 				return fmt.Errorf("%s: readlink: %w", filename, err)
-		// 			}
-		// 		}
-		// 	}
+			// handle symbolic links
+			var linkTarget string
+			if isSymlink(info) {
+				if options != nil && options.FollowSymlinks {
+					// dereference symlinks
+					filename, err = os.Readlink(filename)
+					if err != nil {
+						return fmt.Errorf("%s: readlink: %w", filename, err)
+					}
+					info, err = os.Stat(filename)
+					if err != nil {
+						return fmt.Errorf("%s: statting dereferenced symlink: %w", filename, err)
+					}
+				} else {
+					// preserve symlinks
+					linkTarget, err = os.Readlink(filename)
+					if err != nil {
+						return fmt.Errorf("%s: readlink: %w", filename, err)
+					}
+				}
+			}
 
-		// 	// handle file attributes
-		// 	if options != nil && options.ClearAttributes {
-		// 		info = noAttrFileInfo{info}
-		// 	}
+			// handle file attributes
+			if options != nil && options.ClearAttributes {
+				info = noAttrFileInfo{info}
+			}
 
-		// 	file := File{
-		// 		FileInfo:      info,
-		// 		NameInArchive: nameInArchive,
-		// 		LinkTarget:    linkTarget,
-		// 		Open: func() (io.ReadCloser, error) {
-		// 			return os.Open(filename)
-		// 		},
-		// 	}
+			file := File{
+				FileInfo:      info,
+				NameInArchive: nameInArchive,
+				LinkTarget:    linkTarget,
+				Open: func() (io.ReadCloser, error) {
+					return os.Open(filename)
+				},
+			}
 
-		// 	files = append(files, file)
-		// 	return nil
-		// })
+			files = append(files, file)
+			return nil
+		})
 	}
 	return files, nil
 }

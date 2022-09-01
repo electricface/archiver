@@ -85,9 +85,8 @@ func (f DirFS) ReadDir(name string) ([]mfs.DirEntry, error) {
 	if err := f.checkName(name, "readdir"); err != nil {
 		return nil, err
 	}
-	return nil, errors.New("TODO")
-	// TODO SWT impl os.ReadDir
 	// return os.ReadDir(filepath.Join(string(f), name))
+	return readDir(filepath.Join(string(f), name))
 }
 
 // Stat returns info about the named file.
