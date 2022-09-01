@@ -1,3 +1,5 @@
+backport to go 1.15
+
 # archiver [![Go Reference](https://pkg.go.dev/badge/github.com/mholt/archiver/v4.svg)](https://pkg.go.dev/github.com/mholt/archiver/v4) [![Ubuntu-latest](https://github.com/mholt/archiver/actions/workflows/ubuntu-latest.yml/badge.svg)](https://github.com/mholt/archiver/actions/workflows/ubuntu-latest.yml) [![Macos-latest](https://github.com/mholt/archiver/actions/workflows/macos-latest.yml/badge.svg)](https://github.com/mholt/archiver/actions/workflows/macos-latest.yml) [![Windows-latest](https://github.com/mholt/archiver/actions/workflows/windows-latest.yml/badge.svg)](https://github.com/mholt/archiver/actions/workflows/windows-latest.yml)
 
 Introducing **Archiver 4.0** - a cross-platform, multi-format archive utility and Go library. A powerful and flexible library meets an elegant CLI in this generic replacement for several platform-specific or format-specific archive utilities.
