@@ -3,6 +3,7 @@ package archiver
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"strings"
 
 	"github.com/golang/snappy"
@@ -40,7 +41,7 @@ func (Sz) OpenWriter(w io.Writer) (io.WriteCloser, error) {
 }
 
 func (Sz) OpenReader(r io.Reader) (io.ReadCloser, error) {
-	return io.NopCloser(snappy.NewReader(r)), nil
+	return ioutil.NopCloser(snappy.NewReader(r)), nil
 }
 
 // https://github.com/google/snappy/blob/master/framing_format.txt

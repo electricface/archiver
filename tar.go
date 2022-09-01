@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
+	"io/ioutil"
 	"log"
 	"path"
 	"strings"
+
+	mfs "github.com/electricface/go-std-iofs"
 )
 
 func init() {
@@ -211,11 +213,11 @@ func (t Tar) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchiv
 			Header:        hdr,
 			NameInArchive: hdr.Name,
 			LinkTarget:    hdr.Linkname,
-			Open:          func() (io.ReadCloser, error) { return io.NopCloser(tr), nil },
+			Open:          func() (io.ReadCloser, error) { return ioutil.NopCloser(tr), nil },
 		}
 
 		err = handleFile(ctx, file)
-		if errors.Is(err, fs.SkipDir) {
+		if errors.Is(err, mfs.SkipDir) {
 			// if a directory, skip this path; if a file, skip the folder path
 			dirPath := hdr.Name
 			if hdr.Typeflag != tar.TypeDir {

@@ -2,19 +2,19 @@ package archiver
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	mfs "github.com/electricface/go-std-iofs"
 )
 
 // File is a virtualized, generalized file abstraction for interacting with archives.
 type File struct {
-	fs.FileInfo
+	os.FileInfo
 
 	// The file header as used/provided by the archive format.
 	// Typically, you do not need to set this field when creating
@@ -40,7 +40,7 @@ type File struct {
 	Open func() (io.ReadCloser, error)
 }
 
-func (f File) Stat() (fs.FileInfo, error) { return f.FileInfo, nil }
+func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
 
 // FilesFromDisk returns a list of files by walking the directories in the
 // given filenames map. The keys are the names on disk, and the values are
@@ -66,64 +66,67 @@ func (f File) Stat() (fs.FileInfo, error) { return f.FileInfo, nil }
 func FilesFromDisk(options *FromDiskOptions, filenames map[string]string) ([]File, error) {
 	var files []File
 	for rootOnDisk, rootInArchive := range filenames {
-		filepath.WalkDir(rootOnDisk, func(filename string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
+		// TODO SWT
+		_ = rootOnDisk
+		_ = rootInArchive
+		// filepath.WalkDir(rootOnDisk, func(filename string, d mfs.DirEntry, err error) error {
+		// 	if err != nil {
+		// 		return err
+		// 	}
 
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
+		// 	info, err := d.Info()
+		// 	if err != nil {
+		// 		return err
+		// 	}
 
-			nameInArchive := nameOnDiskToNameInArchive(filename, rootOnDisk, rootInArchive)
+		// 	nameInArchive := nameOnDiskToNameInArchive(filename, rootOnDisk, rootInArchive)
 
-			// handle symbolic links
-			var linkTarget string
-			if isSymlink(info) {
-				if options != nil && options.FollowSymlinks {
-					// dereference symlinks
-					filename, err = os.Readlink(filename)
-					if err != nil {
-						return fmt.Errorf("%s: readlink: %w", filename, err)
-					}
-					info, err = os.Stat(filename)
-					if err != nil {
-						return fmt.Errorf("%s: statting dereferenced symlink: %w", filename, err)
-					}
-				} else {
-					// preserve symlinks
-					linkTarget, err = os.Readlink(filename)
-					if err != nil {
-						return fmt.Errorf("%s: readlink: %w", filename, err)
-					}
-				}
-			}
+		// 	// handle symbolic links
+		// 	var linkTarget string
+		// 	if isSymlink(info) {
+		// 		if options != nil && options.FollowSymlinks {
+		// 			// dereference symlinks
+		// 			filename, err = os.Readlink(filename)
+		// 			if err != nil {
+		// 				return fmt.Errorf("%s: readlink: %w", filename, err)
+		// 			}
+		// 			info, err = os.Stat(filename)
+		// 			if err != nil {
+		// 				return fmt.Errorf("%s: statting dereferenced symlink: %w", filename, err)
+		// 			}
+		// 		} else {
+		// 			// preserve symlinks
+		// 			linkTarget, err = os.Readlink(filename)
+		// 			if err != nil {
+		// 				return fmt.Errorf("%s: readlink: %w", filename, err)
+		// 			}
+		// 		}
+		// 	}
 
-			// handle file attributes
-			if options != nil && options.ClearAttributes {
-				info = noAttrFileInfo{info}
-			}
+		// 	// handle file attributes
+		// 	if options != nil && options.ClearAttributes {
+		// 		info = noAttrFileInfo{info}
+		// 	}
 
-			file := File{
-				FileInfo:      info,
-				NameInArchive: nameInArchive,
-				LinkTarget:    linkTarget,
-				Open: func() (io.ReadCloser, error) {
-					return os.Open(filename)
-				},
-			}
+		// 	file := File{
+		// 		FileInfo:      info,
+		// 		NameInArchive: nameInArchive,
+		// 		LinkTarget:    linkTarget,
+		// 		Open: func() (io.ReadCloser, error) {
+		// 			return os.Open(filename)
+		// 		},
+		// 	}
 
-			files = append(files, file)
-			return nil
-		})
+		// 	files = append(files, file)
+		// 	return nil
+		// })
 	}
 	return files, nil
 }
 
 // nameOnDiskToNameInArchive converts a filename from disk to a name in an archive,
 // respecting rules defined by FilesFromDisk. nameOnDisk is the full filename on disk
-// which is expected to be prefixed by rootOnDisk (according to fs.WalkDirFunc godoc)
+// which is expected to be prefixed by rootOnDisk (according to mfs.WalkDirFunc godoc)
 // and which will be placed into a folder rootInArchive in the archive.
 func nameOnDiskToNameInArchive(nameOnDisk, rootOnDisk, rootInArchive string) string {
 	// These manipulations of rootInArchive could be done just once instead of on
@@ -172,11 +175,11 @@ func topDir(dir string) string {
 }
 
 // noAttrFileInfo is used to zero out some file attributes (issue #280).
-type noAttrFileInfo struct{ fs.FileInfo }
+type noAttrFileInfo struct{ mfs.FileInfo }
 
 // Mode preserves only the type and permission bits.
-func (no noAttrFileInfo) Mode() fs.FileMode {
-	return no.FileInfo.Mode() & (fs.ModeType | fs.ModePerm)
+func (no noAttrFileInfo) Mode() os.FileMode {
+	return no.FileInfo.Mode() & os.FileMode(mfs.ModeType|mfs.ModePerm)
 }
 func (noAttrFileInfo) ModTime() time.Time { return time.Time{} }
 func (noAttrFileInfo) Sys() interface{}   { return nil }
@@ -194,11 +197,11 @@ type FromDiskOptions struct {
 }
 
 // FileHandler is a callback function that is used to handle files as they are read
-// from an archive; it is kind of like fs.WalkDirFunc. Handler functions that open
+// from an archive; it is kind of like mfs.WalkDirFunc. Handler functions that open
 // their files must not overlap or run concurrently, as files may be read from the
 // same sequential stream; always close the file before returning.
 //
-// If the special error value fs.SkipDir is returned, the directory of the file
+// If the special error value mfs.SkipDir is returned, the directory of the file
 // (or the file itself if it is a directory) will not be walked. Note that because
 // archive contents are not necessarily ordered, skipping directories requires
 // memory, and skipping lots of directories may run up your memory bill.
@@ -239,7 +242,7 @@ func fileIsIncluded(filenameList []string, filename string) bool {
 	return false
 }
 
-func isSymlink(info fs.FileInfo) bool {
+func isSymlink(info mfs.FileInfo) bool {
 	return info.Mode()&os.ModeSymlink != 0
 }
 

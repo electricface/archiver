@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/fs"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	mfs "github.com/electricface/go-std-iofs"
 )
 
 func TestRewindReader(t *testing.T) {
@@ -73,7 +75,7 @@ func TestCompression(t *testing.T) {
 		// read the contents back out and compare
 		decompReader, err := format.(Decompressor).OpenReader(stream)
 		checkErr(t, err, "opening with decompressor '%s'", format.Name())
-		data, err := io.ReadAll(decompReader)
+		data, err := ioutil.ReadAll(decompReader)
 		checkErr(t, err, "reading decompressed data")
 		checkErr(t, decompReader.Close(), "closing decompressor")
 		if !bytes.Equal(data, contents) {
@@ -224,7 +226,7 @@ func compress(
 	return buf.Bytes()
 }
 
-func archive(t *testing.T, arch Archiver, fname string, fileInfo fs.FileInfo) []byte {
+func archive(t *testing.T, arch Archiver, fname string, fileInfo mfs.FileInfo) []byte {
 	files := []File{
 		{FileInfo: fileInfo, NameInArchive: "tmp.txt",
 			Open: func() (io.ReadCloser, error) {
@@ -249,9 +251,8 @@ func newWriteNopCloser(w io.Writer) (io.WriteCloser, error) {
 	return writeNopCloser{w}, nil
 }
 
-func newTmpTextFile(t *testing.T, content string) (string, fs.FileInfo) {
-
-	tmpTxtFile, err := os.CreateTemp("", "TestIdentifyFindFormatByStreamContent-tmp-*.txt")
+func newTmpTextFile(t *testing.T, content string) (string, mfs.FileInfo) {
+	tmpTxtFile, err := ioutil.TempFile("", "TestIdentifyFindFormatByStreamContent-tmp-*.txt")
 	if err != nil {
 		t.Fatalf("fail to create tmp test file for archive tests: err=%v", err)
 		return "", nil
@@ -405,7 +406,7 @@ func TestIdentifyAndOpenZip(t *testing.T) {
 			return err
 		}
 		defer rc.Close()
-		_, err = io.ReadAll(rc)
+		_, err = ioutil.ReadAll(rc)
 		return err
 	})
 	checkErr(t, err, "extracting zip")

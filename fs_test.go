@@ -2,16 +2,16 @@ package archiver
 
 import (
 	"bytes"
-	_ "embed"
+	// _ "embed"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
-	"net/http"
 	"path"
 	"reflect"
 	"sort"
 	"testing"
+
+	mfs "github.com/electricface/go-std-iofs"
 )
 
 func TestPathWithoutTopDir(t *testing.T) {
@@ -57,8 +57,8 @@ func ExampleArchiveFS_Stream() {
 		Format: Zip{},
 	}
 	// You can serve the contents in a web server:
-	http.Handle("/static", http.StripPrefix("/static",
-		http.FileServer(http.FS(fsys))))
+	// http.Handle("/static", http.StripPrefix("/static",
+	// 	http.FileServer(http.FS(fsys))))
 
 	// Or read the files using fs functions:
 	dis, err := fsys.ReadDir(".")
@@ -67,7 +67,7 @@ func ExampleArchiveFS_Stream() {
 	}
 	for _, di := range dis {
 		fmt.Println(di.Name())
-		b, err := fs.ReadFile(fsys, path.Join(".", di.Name()))
+		b, err := mfs.ReadFile(fsys, path.Join(".", di.Name()))
 		if err != nil {
 			log.Fatal(err)
 		}

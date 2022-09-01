@@ -2,6 +2,7 @@ package archiver
 
 import (
 	"io"
+	"io/ioutil"
 	"strings"
 
 	"github.com/andybalholm/brotli"
@@ -38,5 +39,5 @@ func (br Brotli) OpenWriter(w io.Writer) (io.WriteCloser, error) {
 }
 
 func (Brotli) OpenReader(r io.Reader) (io.ReadCloser, error) {
-	return io.NopCloser(brotli.NewReader(r)), nil
+	return ioutil.NopCloser(brotli.NewReader(r)), nil
 }

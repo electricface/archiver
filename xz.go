@@ -3,6 +3,7 @@ package archiver
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"strings"
 
 	fastxz "github.com/therootcompany/xz"
@@ -45,7 +46,7 @@ func (Xz) OpenReader(r io.Reader) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return io.NopCloser(xr), err
+	return ioutil.NopCloser(xr), err
 }
 
 // magic number at the beginning of xz files; see section 2.1.1.1
