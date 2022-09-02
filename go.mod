@@ -18,4 +18,4 @@ require (
 	golang.org/x/text v0.3.7
 )
 
-require github.com/electricface/go-stdlib-compat v0.0.1
+require github.com/electricface/go-stdlib-compat v0.0.2
