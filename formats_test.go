@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	fs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-stdlib-compat/io/fs"
 )
 
 func TestRewindReader(t *testing.T) {

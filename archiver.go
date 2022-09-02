@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	fs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-stdlib-compat/io/fs"
 )
 
 // File is a virtualized, generalized file abstraction for interacting with archives.

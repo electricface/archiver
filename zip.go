@@ -12,7 +12,7 @@ import (
 	"path"
 	"strings"
 
-	fs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-stdlib-compat/io/fs"
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/klauspost/compress/zstd"

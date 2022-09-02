@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	fs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-stdlib-compat/io/fs"
 )
 
 // FileSystem opens the file at root as a read-only file system. The root may be a
