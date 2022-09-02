@@ -11,12 +11,13 @@ import (
 	"time"
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
+	"github.com/electricface/go-stdlib-compat/osplus"
 	"github.com/electricface/go-stdlib-compat/path/filepathplus"
 )
 
 // File is a virtualized, generalized file abstraction for interacting with archives.
 type File struct {
-	os.FileInfo
+	fs.FileInfo
 
 	// The file header as used/provided by the archive format.
 	// Typically, you do not need to set this field when creating
@@ -42,7 +43,7 @@ type File struct {
 	Open func() (io.ReadCloser, error)
 }
 
-func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
+func (f File) Stat() (fs.FileInfo, error) { return f.FileInfo, nil }
 
 // FilesFromDisk returns a list of files by walking the directories in the
 // given filenames map. The keys are the names on disk, and the values are
@@ -89,7 +90,7 @@ func FilesFromDisk(options *FromDiskOptions, filenames map[string]string) ([]Fil
 					if err != nil {
 						return fmt.Errorf("%s: readlink: %w", filename, err)
 					}
-					info, err = os.Stat(filename)
+					info, err = osplus.Stat(filename)
 					if err != nil {
 						return fmt.Errorf("%s: statting dereferenced symlink: %w", filename, err)
 					}
@@ -177,8 +178,8 @@ func topDir(dir string) string {
 type noAttrFileInfo struct{ fs.FileInfo }
 
 // Mode preserves only the type and permission bits.
-func (no noAttrFileInfo) Mode() os.FileMode {
-	return no.FileInfo.Mode() & os.FileMode(fs.ModeType|fs.ModePerm)
+func (no noAttrFileInfo) Mode() fs.FileMode {
+	return no.FileInfo.Mode() & (fs.ModeType | fs.ModePerm)
 }
 func (noAttrFileInfo) ModTime() time.Time { return time.Time{} }
 func (noAttrFileInfo) Sys() interface{}   { return nil }
@@ -242,7 +243,7 @@ func fileIsIncluded(filenameList []string, filename string) bool {
 }
 
 func isSymlink(info fs.FileInfo) bool {
-	return info.Mode()&os.ModeSymlink != 0
+	return info.Mode()&fs.FileMode(os.ModeSymlink) != 0
 }
 
 // skipList keeps a list of non-intersecting paths

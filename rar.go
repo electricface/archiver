@@ -3,6 +3,7 @@ package archiver
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -59,8 +60,9 @@ func (r Rar) Archive(_ context.Context, _ io.Writer, _ []File) error {
 }
 
 func (r Rar) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchive []string, handleFile FileHandler) error {
-	// TODO SWT
-	return nil
+	// NOTE SWT 由于 radecode/v2 需要用到 fs, 则改成使用 radecode v1 了，
+	// 但是没有 radecode.Option 可用，于是注释这个方法，并这个方法总是返回错误。
+	return errors.New("this function is currently unavailable")
 	// var options []rardecode.Option
 	// if r.Password != "" {
 	// 	options = append(options, rardecode.Password(r.Password))

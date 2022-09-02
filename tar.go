@@ -12,6 +12,7 @@ import (
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
 	"github.com/electricface/go-stdlib-compat/ioplus"
+	"github.com/electricface/go-stdlib-compat/osplus"
 )
 
 func init() {
@@ -82,7 +83,7 @@ func (Tar) writeFileToArchive(ctx context.Context, tw *tar.Writer, file File) er
 		return err // honor context cancellation
 	}
 
-	hdr, err := tar.FileInfoHeader(file, file.LinkTarget)
+	hdr, err := tar.FileInfoHeader(osplus.ToOsFileInfo(file), file.LinkTarget)
 	if err != nil {
 		return fmt.Errorf("file %s: creating header: %w", file.NameInArchive, err)
 	}
@@ -209,7 +210,7 @@ func (t Tar) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchiv
 		}
 
 		file := File{
-			FileInfo:      hdr.FileInfo(),
+			FileInfo:      osplus.ToFsFileInfo(hdr.FileInfo()),
 			Header:        hdr,
 			NameInArchive: hdr.Name,
 			LinkTarget:    hdr.Linkname,

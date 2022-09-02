@@ -78,7 +78,7 @@ func (f DirFS) Open(name string) (fs.File, error) {
 	if err := f.checkName(name, "open"); err != nil {
 		return nil, err
 	}
-	return os.Open(filepath.Join(string(f), name))
+	return osplus.Open(filepath.Join(string(f), name))
 }
 
 // ReadDir returns a listing of all the files in the named directory.
@@ -90,11 +90,11 @@ func (f DirFS) ReadDir(name string) ([]fs.DirEntry, error) {
 }
 
 // Stat returns info about the named file.
-func (f DirFS) Stat(name string) (os.FileInfo, error) {
+func (f DirFS) Stat(name string) (fs.FileInfo, error) {
 	if err := f.checkName(name, "stat"); err != nil {
 		return nil, err
 	}
-	return os.Stat(filepath.Join(string(f), name))
+	return osplus.Stat(filepath.Join(string(f), name))
 }
 
 // Sub returns an FS corresponding to the subtree rooted at dir.
@@ -143,7 +143,7 @@ func (f FileFS) Open(name string) (fs.File, error) {
 	if err := f.checkName(name, "open"); err != nil {
 		return nil, err
 	}
-	file, err := os.Open(f.Path)
+	file, err := osplus.Open(f.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -170,11 +170,11 @@ func (f FileFS) ReadDir(name string) ([]fs.DirEntry, error) {
 }
 
 // Stat stats the named file, which must be the file used to create the file system.
-func (f FileFS) Stat(name string) (os.FileInfo, error) {
+func (f FileFS) Stat(name string) (fs.FileInfo, error) {
 	if err := f.checkName(name, "stat"); err != nil {
 		return nil, err
 	}
-	return os.Stat(f.Path)
+	return osplus.Stat(f.Path)
 }
 
 func (f FileFS) checkName(name, op string) error {
@@ -191,7 +191,8 @@ func (f FileFS) checkName(name, op string) error {
 // from a decompression reader, and which closes both
 // that reader and the underlying file.
 type compressedFile struct {
-	*os.File
+	// *os.File
+	fs.File
 	decomp io.ReadCloser
 }
 
@@ -255,7 +256,7 @@ func (f ArchiveFS) Open(name string) (fs.File, error) {
 	var archiveFile fs.File
 	var err error
 	if f.Path != "" {
-		archiveFile, err = os.Open(f.Path)
+		archiveFile, err = osplus.Open(f.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -360,7 +361,7 @@ func (f ArchiveFS) Open(name string) (fs.File, error) {
 
 // Stat stats the named file from within the archive. If name is "." then
 // the archive file itself is statted and treated as a directory file.
-func (f ArchiveFS) Stat(name string) (os.FileInfo, error) {
+func (f ArchiveFS) Stat(name string) (fs.FileInfo, error) {
 	if !fs.ValidPath(name) {
 		return nil, &fs.PathError{Op: "stat", Path: name, Err: fs.ErrInvalid}
 	}
@@ -370,7 +371,7 @@ func (f ArchiveFS) Stat(name string) (os.FileInfo, error) {
 
 	if name == "." {
 		if f.Path != "" {
-			fileInfo, err := os.Stat(f.Path)
+			fileInfo, err := osplus.Stat(f.Path)
 			if err != nil {
 				return nil, err
 			}
@@ -601,7 +602,7 @@ var errStopWalk = fmt.Errorf("stop walk")
 
 type fakeArchiveFile struct{}
 
-func (f fakeArchiveFile) Stat() (os.FileInfo, error) {
+func (f fakeArchiveFile) Stat() (fs.FileInfo, error) {
 	return implicitDirInfo{
 		implicitDirEntry{name: "."},
 	}, nil
@@ -651,11 +652,11 @@ func (df *dirFile) ReadDir(n int) ([]fs.DirEntry, error) {
 // true for IsDir. It is often used as the FileInfo for
 // dirFile values.
 type dirFileInfo struct {
-	os.FileInfo
+	fs.FileInfo
 }
 
 func (dirFileInfo) Size() int64            { return 0 }
-func (info dirFileInfo) Mode() os.FileMode { return info.FileInfo.Mode() | os.FileMode(fs.ModeDir) }
+func (info dirFileInfo) Mode() fs.FileMode { return info.FileInfo.Mode() | fs.ModeDir }
 func (dirFileInfo) IsDir() bool            { return true }
 
 // extractedFile implements fs.File, thus it represents an "opened" file,
@@ -700,8 +701,8 @@ type implicitDirEntry struct {
 
 func (e implicitDirEntry) Name() string    { return e.name }
 func (implicitDirEntry) IsDir() bool       { return true }
-func (implicitDirEntry) Type() os.FileMode { return os.ModeDir }
-func (e implicitDirEntry) Info() (os.FileInfo, error) {
+func (implicitDirEntry) Type() fs.FileMode { return fs.ModeDir }
+func (e implicitDirEntry) Info() (fs.FileInfo, error) {
 	return implicitDirInfo{e}, nil
 }
 
@@ -716,7 +717,7 @@ type implicitDirInfo struct {
 
 func (d implicitDirInfo) Name() string      { return d.name }
 func (implicitDirInfo) Size() int64         { return 0 }
-func (d implicitDirInfo) Mode() os.FileMode { return os.FileMode(d.Type()) }
+func (d implicitDirInfo) Mode() fs.FileMode { return d.Type() }
 func (implicitDirInfo) ModTime() time.Time  { return time.Time{} }
 func (implicitDirInfo) Sys() interface{}    { return nil }
 

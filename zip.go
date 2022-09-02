@@ -13,6 +13,7 @@ import (
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
 	"github.com/electricface/go-stdlib-compat/ioplus"
+	"github.com/electricface/go-stdlib-compat/osplus"
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/klauspost/compress/zstd"
@@ -140,7 +141,7 @@ func (z Zip) archiveOneFile(ctx context.Context, zw *zip.Writer, idx int, file F
 		return err // honor context cancellation
 	}
 
-	hdr, err := zip.FileInfoHeader(file)
+	hdr, err := zip.FileInfoHeader(osplus.ToOsFileInfo(file))
 	if err != nil {
 		return fmt.Errorf("getting info for file %d: %s: %w", idx, file.Name(), err)
 	}
@@ -219,7 +220,7 @@ func (z Zip) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchiv
 		}
 
 		file := File{
-			FileInfo:      f.FileInfo(),
+			FileInfo:      osplus.ToFsFileInfo(f.FileInfo()),
 			Header:        f.FileHeader,
 			NameInArchive: f.Name,
 			Open:          func() (io.ReadCloser, error) { return f.Open() },
