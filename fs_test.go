@@ -11,7 +11,7 @@ import (
 	"sort"
 	"testing"
 
-	mfs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-std-iofs"
 )
 
 func TestPathWithoutTopDir(t *testing.T) {
@@ -67,7 +67,7 @@ func ExampleArchiveFS_Stream() {
 	}
 	for _, di := range dis {
 		fmt.Println(di.Name())
-		b, err := mfs.ReadFile(fsys, path.Join(".", di.Name()))
+		b, err := fs.ReadFile(fsys, path.Join(".", di.Name()))
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	mfs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-std-iofs"
 )
 
 func TestRewindReader(t *testing.T) {
@@ -226,7 +226,7 @@ func compress(
 	return buf.Bytes()
 }
 
-func archive(t *testing.T, arch Archiver, fname string, fileInfo mfs.FileInfo) []byte {
+func archive(t *testing.T, arch Archiver, fname string, fileInfo fs.FileInfo) []byte {
 	files := []File{
 		{FileInfo: fileInfo, NameInArchive: "tmp.txt",
 			Open: func() (io.ReadCloser, error) {
@@ -251,7 +251,7 @@ func newWriteNopCloser(w io.Writer) (io.WriteCloser, error) {
 	return writeNopCloser{w}, nil
 }
 
-func newTmpTextFile(t *testing.T, content string) (string, mfs.FileInfo) {
+func newTmpTextFile(t *testing.T, content string) (string, fs.FileInfo) {
 	tmpTxtFile, err := ioutil.TempFile("", "TestIdentifyFindFormatByStreamContent-tmp-*.txt")
 	if err != nil {
 		t.Fatalf("fail to create tmp test file for archive tests: err=%v", err)

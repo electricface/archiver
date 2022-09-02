@@ -12,7 +12,7 @@ import (
 	"path"
 	"strings"
 
-	mfs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-std-iofs"
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/klauspost/compress/zstd"
@@ -226,7 +226,7 @@ func (z Zip) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchiv
 		}
 
 		err := handleFile(ctx, file)
-		if errors.Is(err, mfs.SkipDir) {
+		if errors.Is(err, fs.SkipDir) {
 			// if a directory, skip this path; if a file, skip the folder path
 			dirPath := f.Name
 			if !file.IsDir() {

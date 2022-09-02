@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	mfs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-std-iofs"
 )
 
 // FileSystem opens the file at root as a read-only file system. The root may be a
@@ -29,9 +29,9 @@ import (
 // directories, archives, compressed archives, and individual files are all treated
 // the same way.
 //
-// The returned FS values are guaranteed to be mfs.ReadDirFS and mfs.StatFS types, and
-// may also be mfs.Submfs.
-func FileSystem(root string) (mfs.FS, error) {
+// The returned FS values are guaranteed to be fs.ReadDirFS and fs.StatFS types, and
+// may also be fs.SubFS.
+func FileSystem(root string) (fs.FS, error) {
 	info, err := os.Stat(root)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func FileSystem(root string) (mfs.FS, error) {
 type DirFS string
 
 // Open opens the named file.
-func (f DirFS) Open(name string) (mfs.File, error) {
+func (f DirFS) Open(name string) (fs.File, error) {
 	if err := f.checkName(name, "open"); err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (f DirFS) Open(name string) (mfs.File, error) {
 }
 
 // ReadDir returns a listing of all the files in the named directory.
-func (f DirFS) ReadDir(name string) ([]mfs.DirEntry, error) {
+func (f DirFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	if err := f.checkName(name, "readdir"); err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (f DirFS) Stat(name string) (os.FileInfo, error) {
 }
 
 // Sub returns an FS corresponding to the subtree rooted at dir.
-func (f DirFS) Sub(dir string) (mfs.FS, error) {
+func (f DirFS) Sub(dir string) (fs.FS, error) {
 	if err := f.checkName(dir, "sub"); err != nil {
 		return nil, err
 	}
@@ -116,8 +116,8 @@ func (f DirFS) Sub(dir string) (mfs.FS, error) {
 // the io/fs package, with an extra cue taken from the standard lib's implementation
 // of os.dirFS.Open(), which checks for invalid characters in Windows paths.
 func (f DirFS) checkName(name, op string) error {
-	if !mfs.ValidPath(name) || runtime.GOOS == "windows" && strings.ContainsAny(name, `\:`) {
-		return &mfs.PathError{Op: op, Path: name, Err: mfs.ErrInvalid}
+	if !fs.ValidPath(name) || runtime.GOOS == "windows" && strings.ContainsAny(name, `\:`) {
+		return &fs.PathError{Op: op, Path: name, Err: fs.ErrInvalid}
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ type FileFS struct {
 }
 
 // Open opens the named file, which must be the file used to create the file system.
-func (f FileFS) Open(name string) (mfs.File, error) {
+func (f FileFS) Open(name string) (fs.File, error) {
 	if err := f.checkName(name, "open"); err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (f FileFS) Open(name string) (mfs.File, error) {
 }
 
 // ReadDir returns a directory listing with the file as the singular entry.
-func (f FileFS) ReadDir(name string) ([]mfs.DirEntry, error) {
+func (f FileFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	if err := f.checkName(name, "stat"); err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (f FileFS) ReadDir(name string) ([]mfs.DirEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []mfs.DirEntry{mfs.FileInfoToDirEntry(info)}, nil
+	return []fs.DirEntry{fs.FileInfoToDirEntry(info)}, nil
 }
 
 // Stat stats the named file, which must be the file used to create the file system.
@@ -178,16 +178,16 @@ func (f FileFS) Stat(name string) (os.FileInfo, error) {
 }
 
 func (f FileFS) checkName(name, op string) error {
-	if !mfs.ValidPath(name) {
-		return &mfs.PathError{Op: "open", Path: name, Err: mfs.ErrInvalid}
+	if !fs.ValidPath(name) {
+		return &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
 	}
 	if name != "." && name != path.Base(f.Path) {
-		return &mfs.PathError{Op: op, Path: name, Err: mfs.ErrNotExist}
+		return &fs.PathError{Op: op, Path: name, Err: fs.ErrNotExist}
 	}
 	return nil
 }
 
-// compressedFile is an mfs.File that specially reads
+// compressedFile is an fs.File that specially reads
 // from a decompression reader, and which closes both
 // that reader and the underlying file.
 type compressedFile struct {
@@ -216,8 +216,8 @@ func (cf compressedFile) Close() error {
 // safe, concurrent access.
 //
 // NOTE: Due to Go's file system APIs (see package io/fs), the performance
-// of ArchiveFS when used with mfs.WalkDir() is poor for archives with lots
-// of files (see issue #326). The mfs.WalkDir() API requires listing each
+// of ArchiveFS when used with fs.WalkDir() is poor for archives with lots
+// of files (see issue #326). The fs.WalkDir() API requires listing each
 // directory's contents in turn, and the only way to ensure we return the
 // complete list of folder contents is to traverse the whole archive and
 // build a slice; so if this is done for the root of an archive with many
@@ -247,12 +247,12 @@ func (f ArchiveFS) context() context.Context {
 
 // Open opens the named file from within the archive. If name is "." then
 // the archive file itself will be opened as a directory file.
-func (f ArchiveFS) Open(name string) (mfs.File, error) {
-	if !mfs.ValidPath(name) {
-		return nil, &mfs.PathError{Op: "open", Path: name, Err: mfs.ErrInvalid}
+func (f ArchiveFS) Open(name string) (fs.File, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
 	}
 
-	var archiveFile mfs.File
+	var archiveFile fs.File
 	var err error
 	if f.Path != "" {
 		archiveFile, err = os.Open(f.Path)
@@ -295,7 +295,7 @@ func (f ArchiveFS) Open(name string) (mfs.File, error) {
 		}, nil
 	}
 
-	var fsFile mfs.File
+	var fsFile fs.File
 	handler := func(_ context.Context, file File) error {
 		// if this is the requested file, and it's a directory, set up the dirFile,
 		// which will include a listing of all its contents as we continue the walk
@@ -308,11 +308,11 @@ func (f ArchiveFS) Open(name string) (mfs.File, error) {
 		// if the named file was a directory and we are filling its entries,
 		// add this entry to the list
 		if df, ok := fsFile.(*dirFile); ok {
-			df.entries = append(df.entries, mfs.FileInfoToDirEntry(file))
+			df.entries = append(df.entries, fs.FileInfoToDirEntry(file))
 
 			// don't traverse into subfolders
 			if file.IsDir() {
-				return mfs.SkipDir
+				return fs.SkipDir
 			}
 
 			return nil
@@ -352,7 +352,7 @@ func (f ArchiveFS) Open(name string) (mfs.File, error) {
 		return nil, err
 	}
 	if fsFile == nil {
-		return nil, mfs.ErrNotExist
+		return nil, fs.ErrNotExist
 	}
 
 	return fsFile, nil
@@ -361,8 +361,8 @@ func (f ArchiveFS) Open(name string) (mfs.File, error) {
 // Stat stats the named file from within the archive. If name is "." then
 // the archive file itself is statted and treated as a directory file.
 func (f ArchiveFS) Stat(name string) (os.FileInfo, error) {
-	if !mfs.ValidPath(name) {
-		return nil, &mfs.PathError{Op: "stat", Path: name, Err: mfs.ErrInvalid}
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "stat", Path: name, Err: fs.ErrInvalid}
 	}
 
 	// apply prefix if fs is rooted in a subtree
@@ -412,15 +412,15 @@ func (f ArchiveFS) Stat(name string) (os.FileInfo, error) {
 		return nil, err
 	}
 	if result.FileInfo == nil {
-		return nil, mfs.ErrNotExist
+		return nil, fs.ErrNotExist
 	}
 	return result.FileInfo, nil
 }
 
 // ReadDir reads the named directory from within the archive.
-func (f ArchiveFS) ReadDir(name string) ([]mfs.DirEntry, error) {
-	if !mfs.ValidPath(name) {
-		return nil, &mfs.PathError{Op: "readdir", Path: name, Err: mfs.ErrInvalid}
+func (f ArchiveFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "readdir", Path: name, Err: fs.ErrInvalid}
 	}
 
 	var archiveFile *os.File
@@ -437,7 +437,7 @@ func (f ArchiveFS) ReadDir(name string) ([]mfs.DirEntry, error) {
 	name = path.Join(f.Prefix, name)
 
 	// store entries in a map to inexpensively avoid duplication
-	entries := make(map[string]mfs.DirEntry)
+	entries := make(map[string]fs.DirEntry)
 	handler := func(_ context.Context, file File) error {
 		// directories may end with trailing slash; standardize name
 		trimmedName := strings.Trim(file.NameInArchive, "/")
@@ -473,14 +473,14 @@ func (f ArchiveFS) ReadDir(name string) ([]mfs.DirEntry, error) {
 				entries[implicitDir] = implicitDirEntry{nextDir}
 			}
 
-			return mfs.SkipDir
+			return fs.SkipDir
 		}
 
-		entries[file.NameInArchive] = mfs.FileInfoToDirEntry(file)
+		entries[file.NameInArchive] = fs.FileInfoToDirEntry(file)
 
 		// don't traverse deeper into subfolders
 		if file.IsDir() {
-			return mfs.SkipDir
+			return fs.SkipDir
 		}
 
 		return nil
@@ -503,7 +503,7 @@ func (f ArchiveFS) ReadDir(name string) ([]mfs.DirEntry, error) {
 	}
 
 	// convert map to slice
-	entriesSlice := make([]mfs.DirEntry, 0, len(entries))
+	entriesSlice := make([]fs.DirEntry, 0, len(entries))
 	for _, ent := range entries {
 		entriesSlice = append(entriesSlice, ent)
 	}
@@ -512,9 +512,9 @@ func (f ArchiveFS) ReadDir(name string) ([]mfs.DirEntry, error) {
 }
 
 // Sub returns an FS corresponding to the subtree rooted at dir.
-func (f *ArchiveFS) Sub(dir string) (mfs.FS, error) {
-	if !mfs.ValidPath(dir) {
-		return nil, &mfs.PathError{Op: "sub", Path: dir, Err: mfs.ErrInvalid}
+func (f *ArchiveFS) Sub(dir string) (fs.FS, error) {
+	if !fs.ValidPath(dir) {
+		return nil, &fs.PathError{Op: "sub", Path: dir, Err: fs.ErrInvalid}
 	}
 	info, err := f.Stat(dir)
 	if err != nil {
@@ -558,7 +558,7 @@ func (f *ArchiveFS) Sub(dir string) (mfs.FS, error) {
 // an archive file or is an extracted archive file, as they will
 // work with the same filename/path inputs regardless of the
 // presence of a top-level directory.
-func TopDirOpen(fsys mfs.FS, name string) (mfs.File, error) {
+func TopDirOpen(fsys fs.FS, name string) (fs.File, error) {
 	file, err := fsys.Open(name)
 	if err == nil {
 		return file, nil
@@ -567,7 +567,7 @@ func TopDirOpen(fsys mfs.FS, name string) (mfs.File, error) {
 }
 
 // TopDirStat is like TopDirOpen but for Stat.
-func TopDirStat(fsys mfs.StatFS, name string) (mfs.FileInfo, error) {
+func TopDirStat(fsys fs.StatFS, name string) (fs.FileInfo, error) {
 	info, err := fsys.Stat(name)
 	if err == nil {
 		return info, nil
@@ -576,7 +576,7 @@ func TopDirStat(fsys mfs.StatFS, name string) (mfs.FileInfo, error) {
 }
 
 // TopDirReadDir is like TopDirOpen but for ReadDir.
-func TopDirReadDir(fsys mfs.ReadDirFS, name string) ([]mfs.DirEntry, error) {
+func TopDirReadDir(fsys fs.ReadDirFS, name string) ([]fs.DirEntry, error) {
 	entries, err := fsys.ReadDir(name)
 	if err == nil {
 		return entries, nil
@@ -609,7 +609,7 @@ func (f fakeArchiveFile) Stat() (os.FileInfo, error) {
 func (f fakeArchiveFile) Read([]byte) (int, error) { return 0, io.EOF }
 func (f fakeArchiveFile) Close() error             { return nil }
 
-// dirFile implements the mfs.ReadDirFile interface.
+// dirFile implements the fs.ReadDirFile interface.
 type dirFile struct {
 	extractedFile
 
@@ -620,7 +620,7 @@ type dirFile struct {
 	// files, then continuing the listing, until n are listed. But that
 	// might be kinda messy and a lot of work, so I leave it for a future
 	// optimization if needed.
-	entries     []mfs.DirEntry
+	entries     []fs.DirEntry
 	entriesRead int
 }
 
@@ -630,7 +630,7 @@ type dirFile struct {
 // return true in our case.
 func (dirFile) IsDir() bool { return true }
 
-func (df *dirFile) ReadDir(n int) ([]mfs.DirEntry, error) {
+func (df *dirFile) ReadDir(n int) ([]fs.DirEntry, error) {
 	if n <= 0 {
 		return df.entries, nil
 	}
@@ -645,7 +645,7 @@ func (df *dirFile) ReadDir(n int) ([]mfs.DirEntry, error) {
 	return entries, nil
 }
 
-// dirFileInfo is an implementation of mfs.FileInfo that
+// dirFileInfo is an implementation of fs.FileInfo that
 // is only used for files that are directories. It always
 // returns 0 size, directory bit set in the mode, and
 // true for IsDir. It is often used as the FileInfo for
@@ -655,10 +655,10 @@ type dirFileInfo struct {
 }
 
 func (dirFileInfo) Size() int64            { return 0 }
-func (info dirFileInfo) Mode() os.FileMode { return info.FileInfo.Mode() | os.FileMode(mfs.ModeDir) }
+func (info dirFileInfo) Mode() os.FileMode { return info.FileInfo.Mode() | os.FileMode(fs.ModeDir) }
 func (dirFileInfo) IsDir() bool            { return true }
 
-// extractedFile implements mfs.File, thus it represents an "opened" file,
+// extractedFile implements fs.File, thus it represents an "opened" file,
 // which is slightly different from our File type which represents a file
 // that possibly may be opened. If the file is actually opened, this type
 // ensures that the parent archive is closed when this file from within it
@@ -705,7 +705,7 @@ func (e implicitDirEntry) Info() (os.FileInfo, error) {
 	return implicitDirInfo{e}, nil
 }
 
-// implicitDirInfo is a mfs.FileInfo for an implicit directory
+// implicitDirInfo is a fs.FileInfo for an implicit directory
 // (implicitDirEntry) value. This is used when an archive may
 // not contain actual entries for a directory, but we need to
 // pretend it exists so its contents can be discovered and
@@ -722,14 +722,14 @@ func (implicitDirInfo) Sys() interface{}    { return nil }
 
 // Interface guards
 var (
-	_ mfs.ReadDirFS = (*DirFS)(nil)
-	_ mfs.StatFS    = (*DirFS)(nil)
-	_ mfs.SubFS     = (*DirFS)(nil)
+	_ fs.ReadDirFS = (*DirFS)(nil)
+	_ fs.StatFS    = (*DirFS)(nil)
+	_ fs.SubFS     = (*DirFS)(nil)
 
-	_ mfs.ReadDirFS = (*FileFS)(nil)
-	_ mfs.StatFS    = (*FileFS)(nil)
+	_ fs.ReadDirFS = (*FileFS)(nil)
+	_ fs.StatFS    = (*FileFS)(nil)
 
-	_ mfs.ReadDirFS = (*ArchiveFS)(nil)
-	_ mfs.StatFS    = (*ArchiveFS)(nil)
-	_ mfs.SubFS     = (*ArchiveFS)(nil)
+	_ fs.ReadDirFS = (*ArchiveFS)(nil)
+	_ fs.StatFS    = (*ArchiveFS)(nil)
+	_ fs.SubFS     = (*ArchiveFS)(nil)
 )

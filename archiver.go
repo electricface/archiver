@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	mfs "github.com/electricface/go-std-iofs"
+	fs "github.com/electricface/go-std-iofs"
 )
 
 // File is a virtualized, generalized file abstraction for interacting with archives.
@@ -44,7 +44,7 @@ type File struct {
 
 // readDir reads the directory named by dirname and returns
 // a sorted list of directory entries.
-func readDir(dirname string) ([]mfs.DirEntry, error) {
+func readDir(dirname string) ([]fs.DirEntry, error) {
 	// f, err := os.Open(dirname)
 	// if err != nil {
 	// 	return nil, err
@@ -59,17 +59,17 @@ func readDir(dirname string) ([]mfs.DirEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	dirs := make([]mfs.DirEntry, 0, len(fileInfos))
+	dirs := make([]fs.DirEntry, 0, len(fileInfos))
 	for _, fi := range fileInfos {
-		dirs = append(dirs, mfs.FileInfoToDirEntry(fi))
+		dirs = append(dirs, fs.FileInfoToDirEntry(fi))
 	}
 	return dirs, nil
 }
 
 // walkDir recursively descends path, calling walkDirFn.
-func walkDir(path string, d mfs.DirEntry, walkDirFn mfs.WalkDirFunc) error {
+func walkDir(path string, d fs.DirEntry, walkDirFn fs.WalkDirFunc) error {
 	if err := walkDirFn(path, d, nil); err != nil || !d.IsDir() {
-		if err == mfs.SkipDir && d.IsDir() {
+		if err == fs.SkipDir && d.IsDir() {
 			// Successfully skipped directory.
 			err = nil
 		}
@@ -88,7 +88,7 @@ func walkDir(path string, d mfs.DirEntry, walkDirFn mfs.WalkDirFunc) error {
 	for _, d1 := range dirs {
 		path1 := filepath.Join(path, d1.Name())
 		if err := walkDir(path1, d1, walkDirFn); err != nil {
-			if err == mfs.SkipDir {
+			if err == fs.SkipDir {
 				break
 			}
 			return err
@@ -108,16 +108,16 @@ func walkDir(path string, d mfs.DirEntry, walkDirFn mfs.WalkDirFunc) error {
 // to walk that directory.
 //
 // WalkDir does not follow symbolic links.
-func goFilePathWalkDir(root string, fn mfs.WalkDirFunc) error {
+func goFilePathWalkDir(root string, fn fs.WalkDirFunc) error {
 	// copy from filepath.WalkDir
 	info, err := os.Lstat(root)
 	if err != nil {
 		err = fn(root, nil, err)
 	} else {
 		// err = walkDir(root, &statDirEntry{info}, fn)
-		err = walkDir(root, mfs.FileInfoToDirEntry(info), fn)
+		err = walkDir(root, fs.FileInfoToDirEntry(info), fn)
 	}
-	if err == mfs.SkipDir {
+	if err == fs.SkipDir {
 		return nil
 	}
 	return err
@@ -149,7 +149,7 @@ func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
 func FilesFromDisk(options *FromDiskOptions, filenames map[string]string) ([]File, error) {
 	var files []File
 	for rootOnDisk, rootInArchive := range filenames {
-		goFilePathWalkDir(rootOnDisk, func(filename string, d mfs.DirEntry, err error) error {
+		goFilePathWalkDir(rootOnDisk, func(filename string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -206,7 +206,7 @@ func FilesFromDisk(options *FromDiskOptions, filenames map[string]string) ([]Fil
 
 // nameOnDiskToNameInArchive converts a filename from disk to a name in an archive,
 // respecting rules defined by FilesFromDisk. nameOnDisk is the full filename on disk
-// which is expected to be prefixed by rootOnDisk (according to mfs.WalkDirFunc godoc)
+// which is expected to be prefixed by rootOnDisk (according to fs.WalkDirFunc godoc)
 // and which will be placed into a folder rootInArchive in the archive.
 func nameOnDiskToNameInArchive(nameOnDisk, rootOnDisk, rootInArchive string) string {
 	// These manipulations of rootInArchive could be done just once instead of on
@@ -255,11 +255,11 @@ func topDir(dir string) string {
 }
 
 // noAttrFileInfo is used to zero out some file attributes (issue #280).
-type noAttrFileInfo struct{ mfs.FileInfo }
+type noAttrFileInfo struct{ fs.FileInfo }
 
 // Mode preserves only the type and permission bits.
 func (no noAttrFileInfo) Mode() os.FileMode {
-	return no.FileInfo.Mode() & os.FileMode(mfs.ModeType|mfs.ModePerm)
+	return no.FileInfo.Mode() & os.FileMode(fs.ModeType|fs.ModePerm)
 }
 func (noAttrFileInfo) ModTime() time.Time { return time.Time{} }
 func (noAttrFileInfo) Sys() interface{}   { return nil }
@@ -277,11 +277,11 @@ type FromDiskOptions struct {
 }
 
 // FileHandler is a callback function that is used to handle files as they are read
-// from an archive; it is kind of like mfs.WalkDirFunc. Handler functions that open
+// from an archive; it is kind of like fs.WalkDirFunc. Handler functions that open
 // their files must not overlap or run concurrently, as files may be read from the
 // same sequential stream; always close the file before returning.
 //
-// If the special error value mfs.SkipDir is returned, the directory of the file
+// If the special error value fs.SkipDir is returned, the directory of the file
 // (or the file itself if it is a directory) will not be walked. Note that because
 // archive contents are not necessarily ordered, skipping directories requires
 // memory, and skipping lots of directories may run up your memory bill.
@@ -322,7 +322,7 @@ func fileIsIncluded(filenameList []string, filename string) bool {
 	return false
 }
 
-func isSymlink(info mfs.FileInfo) bool {
+func isSymlink(info fs.FileInfo) bool {
 	return info.Mode()&os.ModeSymlink != 0
 }
 
