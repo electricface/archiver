@@ -13,6 +13,7 @@ import (
 	"time"
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
+	"github.com/electricface/go-stdlib-compat/osplus"
 )
 
 // FileSystem opens the file at root as a read-only file system. The root may be a
@@ -85,8 +86,7 @@ func (f DirFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	if err := f.checkName(name, "readdir"); err != nil {
 		return nil, err
 	}
-	// return os.ReadDir(filepath.Join(string(f), name))
-	return readDir(filepath.Join(string(f), name))
+	return osplus.ReadDir(filepath.Join(string(f), name))
 }
 
 // Stat returns info about the named file.

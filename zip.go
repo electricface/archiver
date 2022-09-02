@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"path"
 	"strings"
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
+	"github.com/electricface/go-stdlib-compat/ioplus"
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/klauspost/compress/zstd"
@@ -59,7 +59,7 @@ func init() {
 		if err != nil {
 			return nil
 		}
-		return ioutil.NopCloser(xr)
+		return ioplus.NopCloser(xr)
 	})
 }
 

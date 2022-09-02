@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"path"
 	"strings"
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
+	"github.com/electricface/go-stdlib-compat/ioplus"
 )
 
 func init() {
@@ -213,7 +213,7 @@ func (t Tar) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchiv
 			Header:        hdr,
 			NameInArchive: hdr.Name,
 			LinkTarget:    hdr.Linkname,
-			Open:          func() (io.ReadCloser, error) { return ioutil.NopCloser(tr), nil },
+			Open:          func() (io.ReadCloser, error) { return ioplus.NopCloser(tr), nil },
 		}
 
 		err = handleFile(ctx, file)

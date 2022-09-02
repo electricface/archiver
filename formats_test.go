@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -12,6 +11,8 @@ import (
 	"time"
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
+	"github.com/electricface/go-stdlib-compat/ioplus"
+	"github.com/electricface/go-stdlib-compat/osplus"
 )
 
 func TestRewindReader(t *testing.T) {
@@ -75,7 +76,7 @@ func TestCompression(t *testing.T) {
 		// read the contents back out and compare
 		decompReader, err := format.(Decompressor).OpenReader(stream)
 		checkErr(t, err, "opening with decompressor '%s'", format.Name())
-		data, err := ioutil.ReadAll(decompReader)
+		data, err := ioplus.ReadAll(decompReader)
 		checkErr(t, err, "reading decompressed data")
 		checkErr(t, decompReader.Close(), "closing decompressor")
 		if !bytes.Equal(data, contents) {
@@ -252,7 +253,7 @@ func newWriteNopCloser(w io.Writer) (io.WriteCloser, error) {
 }
 
 func newTmpTextFile(t *testing.T, content string) (string, fs.FileInfo) {
-	tmpTxtFile, err := ioutil.TempFile("", "TestIdentifyFindFormatByStreamContent-tmp-*.txt")
+	tmpTxtFile, err := osplus.CreateTemp("", "TestIdentifyFindFormatByStreamContent-tmp-*.txt")
 	if err != nil {
 		t.Fatalf("fail to create tmp test file for archive tests: err=%v", err)
 		return "", nil
@@ -406,7 +407,7 @@ func TestIdentifyAndOpenZip(t *testing.T) {
 			return err
 		}
 		defer rc.Close()
-		_, err = ioutil.ReadAll(rc)
+		_, err = ioplus.ReadAll(rc)
 		return err
 	})
 	checkErr(t, err, "extracting zip")

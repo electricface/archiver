@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	fs "github.com/electricface/go-stdlib-compat/io/fs"
+	"github.com/electricface/go-stdlib-compat/path/filepathplus"
 )
 
 // File is a virtualized, generalized file abstraction for interacting with archives.
@@ -42,87 +42,6 @@ type File struct {
 	Open func() (io.ReadCloser, error)
 }
 
-// readDir reads the directory named by dirname and returns
-// a sorted list of directory entries.
-func readDir(dirname string) ([]fs.DirEntry, error) {
-	// f, err := os.Open(dirname)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// dirs, err := f.Readdir(-1)
-	// f.Close()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// sort.Slice(dirs, func(i, j int) bool { return dirs[i].Name() < dirs[j].Name() })
-	fileInfos, err := ioutil.ReadDir(dirname)
-	if err != nil {
-		return nil, err
-	}
-	dirs := make([]fs.DirEntry, 0, len(fileInfos))
-	for _, fi := range fileInfos {
-		dirs = append(dirs, fs.FileInfoToDirEntry(fi))
-	}
-	return dirs, nil
-}
-
-// walkDir recursively descends path, calling walkDirFn.
-func walkDir(path string, d fs.DirEntry, walkDirFn fs.WalkDirFunc) error {
-	if err := walkDirFn(path, d, nil); err != nil || !d.IsDir() {
-		if err == fs.SkipDir && d.IsDir() {
-			// Successfully skipped directory.
-			err = nil
-		}
-		return err
-	}
-
-	dirs, err := readDir(path)
-	if err != nil {
-		// Second call, to report ReadDir error.
-		err = walkDirFn(path, d, err)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, d1 := range dirs {
-		path1 := filepath.Join(path, d1.Name())
-		if err := walkDir(path1, d1, walkDirFn); err != nil {
-			if err == fs.SkipDir {
-				break
-			}
-			return err
-		}
-	}
-	return nil
-}
-
-// WalkDir walks the file tree rooted at root, calling fn for each file or
-// directory in the tree, including root.
-//
-// All errors that arise visiting files and directories are filtered by fn:
-// see the fs.WalkDirFunc documentation for details.
-//
-// The files are walked in lexical order, which makes the output deterministic
-// but requires WalkDir to read an entire directory into memory before proceeding
-// to walk that directory.
-//
-// WalkDir does not follow symbolic links.
-func goFilePathWalkDir(root string, fn fs.WalkDirFunc) error {
-	// copy from filepath.WalkDir
-	info, err := os.Lstat(root)
-	if err != nil {
-		err = fn(root, nil, err)
-	} else {
-		// err = walkDir(root, &statDirEntry{info}, fn)
-		err = walkDir(root, fs.FileInfoToDirEntry(info), fn)
-	}
-	if err == fs.SkipDir {
-		return nil
-	}
-	return err
-}
-
 func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
 
 // FilesFromDisk returns a list of files by walking the directories in the
@@ -149,7 +68,7 @@ func (f File) Stat() (os.FileInfo, error) { return f.FileInfo, nil }
 func FilesFromDisk(options *FromDiskOptions, filenames map[string]string) ([]File, error) {
 	var files []File
 	for rootOnDisk, rootInArchive := range filenames {
-		goFilePathWalkDir(rootOnDisk, func(filename string, d fs.DirEntry, err error) error {
+		filepathplus.WalkDir(rootOnDisk, func(filename string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}

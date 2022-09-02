@@ -3,9 +3,9 @@ package archiver
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"strings"
 
+	"github.com/electricface/go-stdlib-compat/ioplus"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -50,7 +50,7 @@ func (lz Lz4) OpenWriter(w io.Writer) (io.WriteCloser, error) {
 }
 
 func (Lz4) OpenReader(r io.Reader) (io.ReadCloser, error) {
-	return ioutil.NopCloser(lz4.NewReader(r)), nil
+	return ioplus.NopCloser(lz4.NewReader(r)), nil
 }
 
 var lz4Header = []byte{0x04, 0x22, 0x4d, 0x18}

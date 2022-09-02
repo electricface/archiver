@@ -2,10 +2,10 @@ package archiver
 
 import (
 	"io"
-	"io/ioutil"
 	"strings"
 
 	"github.com/andybalholm/brotli"
+	"github.com/electricface/go-stdlib-compat/ioplus"
 )
 
 func init() {
@@ -39,5 +39,5 @@ func (br Brotli) OpenWriter(w io.Writer) (io.WriteCloser, error) {
 }
 
 func (Brotli) OpenReader(r io.Reader) (io.ReadCloser, error) {
-	return ioutil.NopCloser(brotli.NewReader(r)), nil
+	return ioplus.NopCloser(brotli.NewReader(r)), nil
 }

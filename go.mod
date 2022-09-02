@@ -18,3 +18,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14
 	golang.org/x/text v0.3.7
 )
+
+require github.com/electricface/go-stdlib-compat v0.0.0-20220902023250-b76f8593d94f
+
+replace github.com/electricface/go-stdlib-compat v0.0.0-20220902023250-b76f8593d94f => /home/del0/gocode/src/github.com/electricface/go-stdlib-compat
