@@ -5,6 +5,8 @@ github.com/dsnet/compress v0.0.1/go.mod h1:Aw8dCMJ7RioblQeTqt88akK31OvO8Dhf5Jflh
 github.com/dsnet/golib v0.0.0-20171103203638-1ea166775780/go.mod h1:Lj+Z9rebOhdfkVLjJ8T6VcRQv3SXugXy999NBtR9aFY=
 github.com/electricface/go-stdlib-compat v0.0.2 h1:/ahVGfsmkPupOXjNmZ5we++jP24McuvGy7GwojPPJ2w=
 github.com/electricface/go-stdlib-compat v0.0.2/go.mod h1:m+zWK8qPxKVsCvIW7CWypvr1B8BpOzdXccqsVfcgd8A=
+github.com/electricface/go-stdlib-compat v0.0.3 h1:Y/CQfueAIXM0ZReByClORsElt40O7wDKJ1wrVMSYpPU=
+github.com/electricface/go-stdlib-compat v0.0.3/go.mod h1:m+zWK8qPxKVsCvIW7CWypvr1B8BpOzdXccqsVfcgd8A=
 github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=
 github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/klauspost/compress v1.4.1/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
