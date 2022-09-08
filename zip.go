@@ -219,11 +219,12 @@ func (z Zip) Extract(ctx context.Context, sourceArchive io.Reader, pathsInArchiv
 			continue
 		}
 
+		fCp := *f
 		file := File{
 			FileInfo:      osplus.ToFsFileInfo(f.FileInfo()),
 			Header:        f.FileHeader,
 			NameInArchive: f.Name,
-			Open:          func() (io.ReadCloser, error) { return f.Open() },
+			Open:          func() (io.ReadCloser, error) { return fCp.Open() },
 		}
 
 		err := handleFile(ctx, file)
